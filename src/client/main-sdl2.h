@@ -45,7 +45,7 @@ errr renderMenu(TermData *td);
 errr handleMenu(int x, int y);
 // MMM END
 /* */
-extern errr init_sdl2(void);
+extern errr init_sdl2(int argc, char **argv);
 extern void quit_sdl2(cptr s);
 /* hook declarations */
 static errr xtraTermHook(int n, int v);

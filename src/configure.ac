@@ -35,6 +35,8 @@ AC_CHECK_LIB([X11], [main], have_x11="yes")
 
 AC_CHECK_LIB([SDL], [main], have_sdl="yes")
 
+AC_CHECK_LIB([SDL2], [main], have_sdl2="yes")
+
 # Try finding ncurses or curses...
 have_curs="yes"
 AC_CHECK_LIB([ncurses], [main],,[
@@ -47,6 +49,7 @@ AC_ARG_ENABLE(win, AC_HELP_STRING([--disable-win],[Disable MS-Windows libraries 
 AC_ARG_WITH(x11, AC_HELP_STRING([--with-x11],[Build with X11 support [default=yes]]), with_x11=$withval, with_x11="yes")
 AC_ARG_WITH(gcu, AC_HELP_STRING([--with-gcu],[Build with GCU support [default=yes]]), with_gcu=$withval, with_gcu="yes")
 AC_ARG_WITH(sdl, AC_HELP_STRING([--with-sdl],[Build with SDL support [default=yes]]), with_sdl=$withval, with_sdl="yes")
+AC_ARG_WITH(sdl2, AC_HELP_STRING([--with-sdl2],[Build with SDL2 support [default=yes]]), with_sdl2=$withval, with_sdl2="yes")
 
 # HAVE + WITH = ENABLED [
 if test "x$have_x11" = xyes && test "x$with_x11" = xyes 
@@ -61,15 +64,26 @@ if test "x$have_sdl" = xyes && test "x$with_sdl" = xyes
 then
     enabled_sdl="yes"
 fi
+if test "x$have_sdl2" = xyes && test "x$with_sdl2" = xyes 
+then
+    enabled_sdl2="yes"
+fi
+
 # ]
 # If we have SDL+X11, disable X11
 if test "x$enabled_x11" = xyes && test "x$enabled_sdl" = xyes
 then
     enabled_x11="no"
 fi
+# If we have SDL2, disable SDL
+if test "x$enabled_sdl" = xyes && test "x$enabled_sdl2" = xyes
+then
+    enabled_sdl="no"
+fi
+
 
 # If we have nothing, enable GCU
-if test "x$enabled_x11" != xyes && test "x$enabled_sdl" != xyes && test "x$ON_WINDOWS" != xyes
+if test "x$enabled_x11" != xyes && test "x$enabled_sdl" != xyes && test "x$enabled_sdl2" != xyes && test "x$ON_WINDOWS" != xyes
 then
     enabled_gcu="yes"
 fi
@@ -100,6 +114,15 @@ then
     LIBS="$LIBS `sdl-config --libs`"
     CFLAGS="$CFLAGS `sdl-config --cflags`"
     DISPMOD="$DISPMOD SDL"
+fi
+
+#SDL2
+if test "x$enabled_sdl2" = xyes
+then
+    TERMDEFS="$TERMDEFS -DUSE_SDL2"
+    LIBS="$LIBS `sdl2-config --libs` -lSDL2_ttf -lSDL2_image -lm"
+    CFLAGS="$CFLAGS `sdl2-config --cflags`"
+    DISPMOD="$DISPMOD SDL2"
 fi
 
 

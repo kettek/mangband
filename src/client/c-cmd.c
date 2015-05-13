@@ -1367,7 +1367,7 @@ void cmd_message(void)
 {
 	//[flm] powerhack to prevent next hack:
 	bool refocus_chat = TRUE;
-#ifdef USE_SDL
+#if defined(USE_SDL) || defined(USE_SDL2)
 	refocus_chat = FALSE;
 #endif
 # define PMSG_TERM 4

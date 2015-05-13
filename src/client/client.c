@@ -9,6 +9,9 @@
 
 #include "angband.h"
 
+#ifdef USE_SDL2
+#include <SDL.h> // needed for SDL_main remapping
+#endif
 
 static void read_mangrc(void)
 {
@@ -161,6 +164,15 @@ int main(int argc, char **argv)
 		if (done) ANGBAND_SYS = "sdl";
 	}
 #endif
+#ifdef USE_SDL2
+	if (!done)
+	{
+		extern errr init_sdl2(int argc, char **argv);
+		if (0 == init_sdl2(argc,argv)) done = TRUE;
+		if (done) ANGBAND_SYS = "sdl2";
+	}
+#endif
+
 
 #ifdef USE_XAW
 	/* Attempt to use the "main-xaw.c" support */
@@ -229,7 +241,7 @@ int main(int argc, char **argv)
 		after we work out some config mechanisms,
 		it'll be possible to clear this all up	 */
 
-	#ifdef USE_SDL
+	#if defined(USE_SDL) || defined(USE_SDL2)
 		client_init(NULL);
 	#else
 		if (argc == 2)

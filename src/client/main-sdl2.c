@@ -2,7 +2,7 @@
 /* Purpose: SDL2 frontend for mangband */
 /* Original SDL2 written by "kts of kettek (kettek1@kettek.net)". */
 
-#include "c-angband.h"
+#include "angband.h"
 
 #ifdef USE_SDL2
 #include "main-sdl2.h"
@@ -34,7 +34,7 @@ int conf = CONF_TERM_WINDOWED;
 /* init_sdl2
 Our initializer function. Sets up SDL2 and creates our z-terms (windows).
 */
-errr init_sdl2(void) {
+errr init_sdl2(int argc, char **argv) {
   char buf[1024];
   int i;
 #ifdef WINDOWS
