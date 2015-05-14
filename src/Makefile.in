@@ -68,6 +68,7 @@ CLI_SRCS = \
   client/main-ibm.c client/main-cap.c client/main-xaw.c \
   client/main-gcu.c client/main-x11.c \
   client/main-sdl.c client/maim-sdl.c client/sdl-xxx.c \
+  client/main-sdl2.c \
   client/netclient.c client/c-birth.c \
   client/c-xtra1.c client/c-xtra2.c client/c-spell.c client/client.c 
 
