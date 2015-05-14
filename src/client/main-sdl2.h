@@ -75,13 +75,26 @@ struct PictData {
 #define TERM_IS_ONLINE (1 << 5)    // Term is online
 #define TERM_IS_VIRTUAL (1 << 6)   // Term is virtual and uses term[TERM_MAIN]'s window/renderer
 #define TERM_IS_HIDDEN (1 << 7)    // Whether or not the term should be shown or not
+// font/pict display modes
+#define TERM_CELL_FONT 0      // Cell sizings are based on font sizes
+#define TERM_CELL_PICT 1      // Cell sizings are based on pict sizes
+#define TERM_CELL_CUST 2      // Cell sizings use orig_w&orig_h, derived from INI file
+#define TERM_PICT_STRETCH 0   // Pict rendering stretches to fit the cell
+#define TERM_PICT_SCALE 1     // Pict rendering scales to fit the cell
+#define TERM_PICT_STATIC 2    // Pict rendering uses the static size
+#define TERM_CHAR_SCALE 0     // Text rendering scales to fit the cell
+#define TERM_CHAR_STATIC 1    // Text rendering uses the static size
+#define TERM_CHAR_STRETCH 2   // Text rendering stretch to fit the cell
 struct TermData {
   SDL_Window *window;           // The term's actual window
   SDL_Renderer *renderer;       // The renderer for above window
   SDL_Texture *framebuffer;     // Our framebuffer
   SDL_Texture *alt_framebuffer; // Bad, but if using virtual terminals, TERM_MAIN must have 2 framebuffers, one for the vterm and one for the main render
 
-  int config;                 // configuration bit field, see TERM_*
+  unsigned int config;        // configuration bit field, see TERM_*
+  Uint8 cell_mode;            // See TERM_CELL_*
+  Uint8 pict_mode;            // See TERM_PICT_*
+  Uint8 char_mode;            // See TERM_CHAR_*
 
   SDL_Rect ren_rect;          // The term's x/y positions and w/h dimensions for rendering
   int x, y;                   // The term's x/y position
@@ -97,6 +110,7 @@ struct TermData {
 
   Uint8 rows, cols;           // The term's rows and columns count
   Uint8 cell_w, cell_h;       // The term's cell width and height, in pixels,
+  Uint8 orig_w, orig_h;       // The term's original cell width and height, in pixels,
   // depending on user settings, this is set to font or pict size
   // I would really prefer not to have these two file names needed, but I want loading/etc. logic to be handled separately from configuration loading
   char font_file[128];        // Filename of the font
@@ -110,6 +124,7 @@ struct TermData {
 };
 /* functions */
 static errr initTermData(TermData *td, cptr name, int id, cptr font);
+static errr applyTermConf(TermData *td);
 static errr setTermCells(TermData *td, int w, int h);
 static errr setTermTitle(TermData *td);
 static errr refreshTerm(TermData *td);

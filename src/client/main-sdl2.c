@@ -20,7 +20,7 @@
       - Modified version of Adam Bolt's 16x16 tiles - has a few added tiles
     * 'lib/xtra/font/AnonymousPro.ttf'
       - The default TTF font, licensed under the Open Font License
-      - NOTE: This can be overridden in MAngband.ini as "font_default" or "font_file".
+      - NOTE: This can be overridden in MAngband.ini as "font_file".
 
 TODO:
   * Actually use all possible settings in MAngband.ini
@@ -135,21 +135,19 @@ errr init_sdl2(int argc, char **argv) {
   initTermData(&terms[TERM_MAIN], term_title[TERM_MAIN], TERM_MAIN, NULL);
   attachFont(&fonts[FONT_NORMAL], &terms[TERM_MAIN]);
   attachPict(&picts[PICT_NORMAL], &terms[TERM_MAIN]);
-  setTermCells(&terms[TERM_MAIN], picts[PICT_NORMAL].w, picts[PICT_NORMAL].h);
+  applyTermConf(&terms[TERM_MAIN]);
   setTermTitle(&terms[TERM_MAIN]);
   refreshTerm(&terms[TERM_MAIN]);
   for (i = 1; i < 8; i++) {
     if (terms[i].config & TERM_IS_HIDDEN) continue;
     initTermData(&terms[i], term_title[i], i, NULL);
     attachFont(&fonts[FONT_SMALL], &terms[i]);
-    setTermCells(&terms[i], fonts[FONT_SMALL].w, fonts[FONT_SMALL].h);
+    applyTermConf(&terms[i]);
     setTermTitle(&terms[i]);
     refreshTerm(&terms[i]);
     ang_term[i] = &(terms[i].t);
   }
   // **** Activate Main z-term and gooo ****
-  attachPict(&picts[PICT_NORMAL], &terms[TERM_MAIN]);
-  setTermCells(&terms[TERM_MAIN], picts[PICT_NORMAL].w, picts[PICT_NORMAL].h);
   Term_activate(&(terms[TERM_MAIN].t));	// set active Term to terms[TERM_MAIN]
   term_screen = Term;                   // set term_screen to terms[TERM_MAIN]
 
@@ -214,6 +212,17 @@ static errr initTermData(TermData *td, cptr name, int id, cptr font) {
   t->data = (vptr)(td);		// point our z-term to TermData
   Term_activate(t);
   td->config |= TERM_IS_ONLINE;
+  return 0;
+}
+static errr applyTermConf(TermData *td) {
+  // apply cell mode settings
+  if (td->cell_mode == TERM_CELL_CUST) {
+    setTermCells(td, td->orig_w, td->orig_h);
+  } else if (td->cell_mode == TERM_CELL_PICT && td->pict_data != NULL) {
+    setTermCells(td, td->pict_data->w, td->pict_data->h);
+  } else if (td->font_data != NULL) {
+    setTermCells(td, td->font_data->w, td->font_data->h);
+  }
   return 0;
 }
 static errr setTermCells(TermData *td, int w, int h) {
@@ -565,22 +574,20 @@ static errr textTermHook(int x, int y, int n, byte attr, cptr s) {
   TermData *td = (TermData*)(Term->data);
   struct FontData *fd = td->font_data;
   SDL_SetTextureColorMod(td->font_texture, color_table[attr][1], color_table[attr][2], color_table[attr][3]);
-  // If the cell width/height of the term does not match, center ourself within it
-  // TODO: also make "stretch" and "scale" available!
-  //int offsetx = 0, offsety = 0;
-  /*int w = terms[cur_term].cell_w, h = terms[cur_term].cell_h;
-  if (w > terms[cur_term].font_data->w) {
-  offsetx = (w - terms[cur_term].font_data->w) / 2;
-  }
-  if (h > terms[cur_term].font_data->h) {
-  offsety = (h - terms[cur_term].font_data->h) / 2;
-  }*/
-  w = td->font_data->w;
-  h = td->font_data->h;
-  r = fmin((float)td->cell_w / (float)w, (float)td->cell_h / (float)h);
-  if (r < 1.0) {
-    w *= r;
-    h *= r;
+  if (td->char_mode == TERM_CHAR_STRETCH) {
+    w = td->cell_w;
+    h = td->cell_h;
+  } else if (td->char_mode == TERM_CHAR_SCALE) {
+    w = td->font_data->w;
+    h = td->font_data->h;
+    r = fmin((float)td->cell_w / (float)w, (float)td->cell_h / (float)h);
+    if (r < 1.0) {
+      w *= r;
+      h *= r;
+    }
+  } else {
+    w = td->font_data->w;
+    h = td->font_data->h;
   }
 
   offsetx = (td->cell_w / 2) - (w/2);
@@ -606,6 +613,8 @@ static errr textTermHook(int x, int y, int n, byte attr, cptr s) {
 }
 static errr pictTermHook(int x, int y, byte attr, char ch) {
   SDL_Rect cell_rect, sprite_rect;
+  int offsetx, offsety, w, h;
+  float r;
   char row, col;
   TermData *td = (TermData*)(Term->data);
   if (td->font_data == NULL || td->pict_data == NULL) return 1;
@@ -613,10 +622,30 @@ static errr pictTermHook(int x, int y, byte attr, char ch) {
   col = ch;
   row &= ~(1 << 7);
   col &= ~(1 << 7);
+
+  if (td->pict_mode == TERM_PICT_STRETCH) {
+    w = td->cell_w;
+    h = td->cell_h;
+  } else if (td->pict_mode == TERM_PICT_SCALE) {
+    w = td->pict_data->w;
+    h = td->pict_data->h;
+    r = fmin((float)td->cell_w / (float)w, (float)td->cell_h / (float)h);
+    if (r < 1.0) {
+      w *= r;
+      h *= r;
+    }
+  } else {
+    w = td->pict_data->w;
+    h = td->pict_data->h;
+  }
+
+  offsetx = (td->cell_w / 2) - (w/2);
+  offsety = (td->cell_h / 2) - (h/2);
+
   //printf("pict at %dx%d(%dx%d)\n", row, col, attr, ch);
   SDL_SetRenderDrawColor(td->renderer, 0, 0, 128, 255);
-  cell_rect.x = x*(td->cell_w); cell_rect.y = y*(td->cell_h);
-  cell_rect.w = td->cell_w; cell_rect.h = td->cell_h;
+  cell_rect.x = x * td->cell_w + offsetx; cell_rect.y = y * td->cell_h + offsety;
+  cell_rect.w = w; cell_rect.h = h;
   sprite_rect.x = col*(td->pict_data->w); sprite_rect.y = row*(td->pict_data->h);
   sprite_rect.w = td->pict_data->w; sprite_rect.h = td->pict_data->h;
   SDL_RenderDrawRect(td->renderer, &cell_rect);
@@ -826,7 +855,7 @@ errr parseConfig(cptr section, cptr key, cptr value) {
       } else if (strcmp(value, "virtual") == 0) {
         conf |= CONF_TERM_VIRTUAL;
       }
-    } else if (strcmp(key, "font_default") == 0) {
+    } else if (strcmp(key, "font_file") == 0) {
       strcpy(default_font, value);
     } else if (strcmp(key, "font_size") == 0) {
       default_font_size = atoi(value);
@@ -841,14 +870,38 @@ errr parseConfig(cptr section, cptr key, cptr value) {
           strncpy(terms[window_id].title, value, 128);
         } else if (strcmp(key, "pict_file") == 0) {
           strncpy(terms[window_id].pict_file, value, 128);
+        } else if (strcmp(key, "pict_mode") == 0) {
+          if (strcmp(value, "static") == 0) {
+            terms[window_id].pict_mode = TERM_PICT_STATIC;
+          } else if (strcmp(value, "stretch") == 0) {
+            terms[window_id].pict_mode = TERM_PICT_STRETCH;
+          } else if (strcmp(value, "scale") == 0) {
+            terms[window_id].pict_mode = TERM_PICT_SCALE;
+          }
         } else if (strcmp(key, "font_file") == 0) {
           strncpy(terms[window_id].pict_file, value, 128);
         } else if (strcmp(key, "font_size") == 0) {
           terms[window_id].font_size = atoi(value);
+        } else if (strcmp(key, "char_mode") == 0) {
+          if (strcmp(value, "static") == 0) {
+            terms[window_id].char_mode = TERM_CHAR_STATIC;
+          } else if (strcmp(value, "stretch") == 0) {
+            terms[window_id].char_mode = TERM_CHAR_STRETCH;
+          } else if (strcmp(value, "scale") == 0) {
+            terms[window_id].char_mode = TERM_CHAR_SCALE;
+          }
         } else if (strcmp(key, "cell_width") == 0) {
-          terms[window_id].cell_w = atoi(value);
+          terms[window_id].orig_w = atoi(value);
         } else if (strcmp(key, "cell_height") == 0) {
-          terms[window_id].cell_h = atoi(value);
+          terms[window_id].orig_h = atoi(value);
+        } else if (strcmp(key, "cell_mode") == 0) {
+          if (strcmp(value, "pict") == 0) {
+            terms[window_id].cell_mode = TERM_CELL_PICT;
+          } else if (strcmp(value, "font") == 0) {
+            terms[window_id].cell_mode = TERM_CELL_FONT;
+          } else if (strcmp(value, "custom") == 0) {
+            terms[window_id].cell_mode = TERM_CELL_CUST;
+          }
         } else if (strcmp(key, "hidden") == 0) {
           if (atoi(value) == 1) {
             terms[window_id].config |= TERM_IS_HIDDEN;
