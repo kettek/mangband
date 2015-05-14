@@ -49,7 +49,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>echo // &gt; $(OutDir)src\config.h</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile>
       <AdditionalOptions>/D "USE_SDL2" %(AdditionalOptions)</AdditionalOptions>
@@ -111,18 +112,18 @@
     <ClCompile Include="..\..\src\client\main-ibm.c" />
     <ClCompile Include="..\..\src\client\main-sdl.c" />
     <ClCompile Include="..\..\src\client\main-sdl2.c" />
-    <ClCompile Include="..\..\src\client\main-win.c" />
     <ClCompile Include="..\..\src\client\main-x11.c" />
     <ClCompile Include="..\..\src\client\main-xaw.c" />
+    <ClCompile Include="..\..\src\client\netclient.c" />
     <ClCompile Include="..\..\src\common\md5.c" />
-    <ClCompile Include="..\..\src\common\net-basics.c" />
-    <ClCompile Include="..\..\src\client\net-client.c" />
-    <ClCompile Include="..\..\src\common\net-imps.c" />
-    <ClCompile Include="..\..\src\common\net-pack.c" />
     <ClCompile Include="..\..\src\client\readdib.c" />
     <ClCompile Include="..\..\src\client\sdl-xxx.c" />
     <ClCompile Include="..\..\src\client\set_focus.c" />
     <ClCompile Include="..\..\src\client\variable.c" />
+    <ClCompile Include="..\..\src\common\net-ibm.c" />
+    <ClCompile Include="..\..\src\common\net-unix.c" />
+    <ClCompile Include="..\..\src\common\net-win.c" />
+    <ClCompile Include="..\..\src\common\sockbuf.c" />
     <ClCompile Include="..\..\src\common\z-form.c" />
     <ClCompile Include="..\..\src\common\z-rand.c" />
     <ClCompile Include="..\..\src\client\z-term.c" />
@@ -130,15 +131,19 @@
     <ClCompile Include="..\..\src\common\z-virt.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\client\externs.h" />
     <ClInclude Include="..\..\src\client\main-sdl2.h" />
+    <ClInclude Include="..\..\src\client\netclient.h" />
     <ClInclude Include="..\..\src\common\angband.h" />
-    <ClInclude Include="..\..\src\client\c-angband.h" />
-    <ClInclude Include="..\..\src\client\c-externs.h" />
+    <ClInclude Include="..\..\src\common\bit.h" />
     <ClInclude Include="..\..\src\common\const.h" />
-    <ClInclude Include="..\..\src\server\defines.h" />
     <ClInclude Include="..\..\src\common\defines.h" />
     <ClInclude Include="..\..\src\common\global.h" />
     <ClInclude Include="..\..\src\common\h-basic.h" />
+    <ClInclude Include="..\..\src\common\net-ibm.h" />
+    <ClInclude Include="..\..\src\common\net-unix.h" />
+    <ClInclude Include="..\..\src\common\net-win.h" />
+    <ClInclude Include="..\..\src\common\sockbuf.h" />
     <ClInclude Include="..\..\src\h-config.h" />
     <ClInclude Include="..\..\src\common\h-define.h" />
     <ClInclude Include="..\..\src\common\h-net.h" />
@@ -146,11 +151,6 @@
     <ClInclude Include="..\..\src\common\h-type.h" />
     <ClInclude Include="..\..\src\client\main-sdl.h" />
     <ClInclude Include="..\..\src\common\md5.h" />
-    <ClInclude Include="..\..\src\common\net-basics.h" />
-    <ClInclude Include="..\..\src\client\net-client.h" />
-    <ClInclude Include="..\..\src\common\net-imps.h" />
-    <ClInclude Include="..\..\src\common\net-pack.h" />
-    <ClInclude Include="..\..\src\options.h" />
     <ClInclude Include="..\..\src\common\pack.h" />
     <ClInclude Include="..\..\src\client\readdib.h" />
     <ClInclude Include="..\..\src\client\resource.h" />

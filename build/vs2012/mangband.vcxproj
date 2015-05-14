@@ -49,7 +49,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>echo // &gt; $(OutDir)src\config.h</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -90,6 +91,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\common\net-ibm.c" />
+    <ClCompile Include="..\..\src\common\net-unix.c" />
+    <ClCompile Include="..\..\src\common\net-win.c" />
+    <ClCompile Include="..\..\src\common\sockbuf.c" />
     <ClCompile Include="..\..\src\server\birth.c" />
     <ClCompile Include="..\..\src\server\cave.c" />
     <ClCompile Include="..\..\src\server\cmd1.c" />
@@ -111,23 +116,22 @@
     <ClCompile Include="..\..\src\server\melee2.c" />
     <ClCompile Include="..\..\src\server\monster1.c" />
     <ClCompile Include="..\..\src\server\monster2.c" />
-    <ClCompile Include="..\..\src\common\net-basics.c" />
-    <ClCompile Include="..\..\src\server\net-game.c" />
-    <ClCompile Include="..\..\src\common\net-imps.c" />
-    <ClCompile Include="..\..\src\common\net-pack.c" />
-    <ClCompile Include="..\..\src\server\net-server.c" />
+    <ClCompile Include="..\..\src\server\netserver.c" />
     <ClCompile Include="..\..\src\server\obj-info.c" />
     <ClCompile Include="..\..\src\server\object1.c" />
     <ClCompile Include="..\..\src\server\object2.c" />
     <ClCompile Include="..\..\src\server\party.c" />
+    <ClCompile Include="..\..\src\server\randart.c" />
     <ClCompile Include="..\..\src\server\save.c" />
+    <ClCompile Include="..\..\src\server\sched-win.c" />
+    <ClCompile Include="..\..\src\server\sched.c" />
     <ClCompile Include="..\..\src\server\spells1.c" />
     <ClCompile Include="..\..\src\server\spells2.c" />
     <ClCompile Include="..\..\src\server\store.c" />
     <ClCompile Include="..\..\src\server\tables.c" />
-    <ClCompile Include="..\..\src\server\use-obj.c" />
     <ClCompile Include="..\..\src\server\util.c" />
     <ClCompile Include="..\..\src\server\variable.c" />
+    <ClCompile Include="..\..\src\server\wilderness-hold.c" />
     <ClCompile Include="..\..\src\server\wilderness.c" />
     <ClCompile Include="..\..\src\server\x-spell.c" />
     <ClCompile Include="..\..\src\server\xtra1.c" />
@@ -138,8 +142,15 @@
     <ClCompile Include="..\..\src\common\z-virt.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\common\angband.h" />
+    <ClInclude Include="..\..\src\common\bit.h" />
+    <ClInclude Include="..\..\src\common\const.h" />
     <ClInclude Include="..\..\src\common\defines.h" />
+    <ClInclude Include="..\..\src\common\externs.h" />
+    <ClInclude Include="..\..\src\common\net-ibm.h" />
+    <ClInclude Include="..\..\src\common\net-unix.h" />
+    <ClInclude Include="..\..\src\common\net-win.h" />
+    <ClInclude Include="..\..\src\config.h" />
+    <ClInclude Include="..\..\src\server\angband.h" />
     <ClInclude Include="..\..\src\server\externs.h" />
     <ClInclude Include="..\..\src\common\global.h" />
     <ClInclude Include="..\..\src\common\h-basic.h" />
@@ -149,17 +160,8 @@
     <ClInclude Include="..\..\src\common\h-system.h" />
     <ClInclude Include="..\..\src\common\h-type.h" />
     <ClInclude Include="..\..\src\server\init.h" />
-    <ClInclude Include="..\..\src\server\mangband.h" />
     <ClInclude Include="..\..\src\common\md5.h" />
-    <ClInclude Include="..\..\src\server\mdefines.h" />
-    <ClInclude Include="..\..\src\common\net-basics.h" />
-    <ClInclude Include="..\..\src\server\net-game.h" />
-    <ClInclude Include="..\..\src\common\net-imps.h" />
-    <ClInclude Include="..\..\src\common\net-pack.h" />
-    <ClInclude Include="..\..\src\server\net-server.h" />
-    <ClInclude Include="..\..\src\options.h" />
     <ClInclude Include="..\..\src\common\pack.h" />
-    <ClInclude Include="..\..\src\server\s-externs.h" />
     <ClInclude Include="..\..\src\common\sockbuf.h" />
     <ClInclude Include="..\..\src\common\types.h" />
     <ClInclude Include="..\..\src\common\version.h" />
@@ -167,6 +169,7 @@
     <ClInclude Include="..\..\src\common\z-rand.h" />
     <ClInclude Include="..\..\src\common\z-util.h" />
     <ClInclude Include="..\..\src\common\z-virt.h" />
+    <ClInclude Include="..\..\src\server\netserver.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="mangclient.vcxproj">
