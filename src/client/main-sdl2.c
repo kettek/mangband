@@ -114,34 +114,12 @@ errr init_sdl2(int argc, char **argv) {
   loadConfig();
   // **** Merge command-line ****
   // **** Load Fonts and Picts ****
-  memset(fonts, 0, 3*sizeof(struct FontData));
-  if (ttfToFont(&fonts[FONT_NORMAL], default_font, default_font_size, TRUE) != 0) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ttfToFont()", "error while loading", NULL);
-    return 1;
-  }
-  if (ttfToFont(&fonts[FONT_SMALL], default_font, default_font_size-2, TRUE) != 0) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ttfToFont()", "error while loading", NULL);
-    cleanFontData(&fonts[FONT_NORMAL]);
-    return 2;
-  }
-  memset(picts, 0, 3*sizeof(struct PictData));
-  if (imgToPict(&picts[PICT_NORMAL], "graf/16x16.png") != 0) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "imgToPict()", "error while loading", NULL);
-    cleanFontData(&fonts[FONT_NORMAL]);
-    cleanFontData(&fonts[FONT_SMALL]);
-    return 3;
-  }
+  memset(fonts, 0, TERM_MAX*sizeof(struct FontData));
+  memset(picts, 0, TERM_MAX*sizeof(struct PictData));
   // **** Initialize z-terms ****
-  initTermData(&terms[TERM_MAIN], term_title[TERM_MAIN], TERM_MAIN, NULL);
-  attachFont(&fonts[FONT_NORMAL], &terms[TERM_MAIN]);
-  attachPict(&picts[PICT_NORMAL], &terms[TERM_MAIN]);
-  applyTermConf(&terms[TERM_MAIN]);
-  setTermTitle(&terms[TERM_MAIN]);
-  refreshTerm(&terms[TERM_MAIN]);
-  for (i = 1; i < 8; i++) {
+  for (i = 0; i < TERM_MAX; i++) {
     if (terms[i].config & TERM_IS_HIDDEN) continue;
     initTermData(&terms[i], term_title[i], i, NULL);
-    attachFont(&fonts[FONT_SMALL], &terms[i]);
     applyTermConf(&terms[i]);
     setTermTitle(&terms[i]);
     refreshTerm(&terms[i]);
@@ -215,6 +193,30 @@ static errr initTermData(TermData *td, cptr name, int id, cptr font) {
   return 0;
 }
 static errr applyTermConf(TermData *td) {
+  char *font_file = (td->font_file[0] != '\0' ? td->font_file : default_font);
+  int font_size = (td->font_size != 0 ? td->font_size : default_font_size);
+  // unload/load fonts as needed
+  if (td->font_data != NULL && strcmp(font_file, td->font_data->filename) != 0) {
+    unloadFont(td);
+  }
+  if (td->font_data == NULL) {
+    if (loadFont(td, font_file, font_size, (td->config & TERM_FONT_SMOOTH ? 1 : 0)) != 0) {
+      // uhoh, let's try to load default
+      if (loadFont(td, default_font, default_font_size, (td->config & TERM_FONT_SMOOTH ? 1 : 0)) != 0) {
+        // UHOH, we even the default font doesn't work
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "applyTermConf", "Could not load any usable fonts!", td->window);
+      }
+    }
+  }
+  // unload/load picts as needed
+  if (td->pict_data != NULL && strcmp(td->pict_file, td->pict_data->filename) != 0) {
+    unloadPict(td);
+  }
+  if (td->pict_file[0] != '\0') {
+    if (loadPict(td, td->pict_file) != 0) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "applyTermConf", "Could not load pict file!", td->window);
+    }
+  }
   // apply cell mode settings
   if (td->cell_mode == TERM_CELL_CUST) {
     setTermCells(td, td->orig_w, td->orig_h);
@@ -294,6 +296,50 @@ static errr setTermTitle(TermData *td) {
   SDL_SetWindowTitle(td->window, buf);
   return 0;
 }
+/* loadFont
+This function attempts to load and attach the given font name and font size to the TermData.
+It first checks all existing FontData structures to see if a FontData with the same settings already exists, and if so, simply attaches that FontData. Otherwise, it will create the given FontData structure and attach it.
+*/
+errr loadFont(TermData *td, cptr filename, int fontsize, int smoothing) {
+  int i;
+  for (i = 0; i < TERM_MAX; i++) {
+    if ((strcmp(terms[i].font_file, filename) == 0)
+        && terms[i].font_size == fontsize
+        && (terms[i].config & TERM_FONT_SMOOTH) == (smoothing ? TERM_FONT_SMOOTH : 0) // eww
+        && terms[i].font_data != NULL) {
+      attachFont(terms[i].font_data, td);
+      return 0;
+    }
+  }
+  // font data does not exist, let's create it in the first available FontData slot
+  for (i = 0; i < TERM_MAX; i++) {
+    if (fonts[i].surface == NULL) {
+      if (ttfToFont(&fonts[i], filename, fontsize, smoothing) != 0) {
+        break; // error!
+      }
+      attachFont(&fonts[i], td);
+      return 0;
+    }
+  }
+  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "loadFont()", TTF_GetError(), NULL);
+  return 1;
+}
+/* unloadFont
+This function unloads the FontData from the TermData and will attempt to destroy the given FontData if it does not referenced by any Term
+*/
+errr unloadFont(TermData *td) {
+  int i;
+  FontData *fd = td->font_data;
+  detachFont(td);
+  for (i = 0; i < TERM_MAX; i++) {
+    if (terms[i].font_data == fd) {
+      // still referenced, bail
+      return 0;
+    }
+  }
+  // isn't referenced anymore, let's delete it!
+  cleanFontData(fd);
+}
 /* attachFont
 This function creates an SDL_Texture from the given FontData's surface, then sets
 needed Term options.
@@ -316,6 +362,48 @@ errr detachFont(TermData *td) {
   td->font_texture = NULL;
   td->font_data = NULL;
   return 0;
+}
+/* loadPict
+This function attempts to load and attach the given pict to the TermData.
+It first checks all existing PictData structures to see if a PictData with the same settings already exists, and if so, simply attaches that PictData. Otherwise, it will create the given PictData structure and attach it.
+*/
+errr loadPict(TermData *td, cptr filename) {
+  int i;
+  for (i = 0; i < TERM_MAX; i++) {
+    if ((strcmp(terms[i].pict_file, filename) == 0)
+        && terms[i].pict_data != NULL) {
+      attachPict(terms[i].pict_data, td);
+      return 0;
+    }
+  }
+  // pict data does not exist, let's create it in the first available PictData slot
+  for (i = 0; i < TERM_MAX; i++) {
+    if (picts[i].surface == NULL) {
+      if (imgToPict(&picts[i], filename) != 0) {
+        break; // error!
+      }
+      attachPict(&picts[i], td);
+      return 0;
+    }
+  }
+  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "loadPict()", "Could not load pict data!", NULL);
+  return 1;
+}
+/* unloadPict
+This function unloads the PictData from the TermData and will attempt to destroy the given PictData if it does not referenced by any Term
+*/
+errr unloadPict(TermData *td) {
+  int i;
+  PictData *pd = td->pict_data;
+  detachPict(td);
+  for (i = 0; i < TERM_MAX; i++) {
+    if (terms[i].pict_data == pd) {
+      // still referenced, bail
+      return 0;
+    }
+  }
+  // isn't referenced anymore, let's delete it!
+  cleanPictData(pd);
 }
 /* attachPict
 This function creates an SDL_Texture from the given PictData's surface. It then sets required
@@ -340,13 +428,14 @@ errr detachPict(TermData *td) {
   td->t.higher_pict = FALSE;
   return 0;
 }
+
 /* ==== z-term hooks ==== */
 static void initTermHook(term *t) {}
 static void nukeTermHook(term *t) {
   TermData *td = (TermData*)(t->data);
   // detach (free texture and NULL pointers) to font/pict if attached
-  detachFont(td);
-  detachPict(td);
+  unloadFont(td);
+  unloadPict(td);
   // destroy self
   if (td->config & TERM_IS_VIRTUAL && td->id != 0) {
     // TODO: if we're virtual, probably destroy a framebuffer
@@ -358,10 +447,6 @@ static void nukeTermHook(term *t) {
   // assume mangclient shutdown if the main terminal is getting nuked
   // TODO: just move this to a quit_sdl2 or similar func
   if (td->id == TERM_MAIN) {
-    // clean up our fonts and picts
-    cleanFontData(&fonts[FONT_NORMAL]);
-    cleanFontData(&fonts[FONT_SMALL]);
-    cleanPictData(&picts[PICT_NORMAL]);
     // close our libraries
     IMG_Quit();
     TTF_Quit();
@@ -879,9 +964,13 @@ errr parseConfig(cptr section, cptr key, cptr value) {
             terms[window_id].pict_mode = TERM_PICT_SCALE;
           }
         } else if (strcmp(key, "font_file") == 0) {
-          strncpy(terms[window_id].pict_file, value, 128);
+          strncpy(terms[window_id].font_file, value, 128);
         } else if (strcmp(key, "font_size") == 0) {
           terms[window_id].font_size = atoi(value);
+        } else if (strcmp(key, "font_smoothing") == 0) {
+          if (strcmp(value, "true") == 0) {
+            terms[window_id].config |= TERM_FONT_SMOOTH;
+          }
         } else if (strcmp(key, "char_mode") == 0) {
           if (strcmp(value, "static") == 0) {
             terms[window_id].char_mode = TERM_CHAR_STATIC;
@@ -946,7 +1035,7 @@ errr ttfToFont(FontData *fd, cptr filename, int fontsize, int smoothing) {
   path_build(buf, 1024, ANGBAND_DIR_XTRA, filename);
   font = TTF_OpenFont(buf, fontsize);
   if (!font) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "TTF_OpenFont", TTF_GetError(), NULL);
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ttfToFont", TTF_GetError(), NULL);
     return 1;
   }
   // Poorly get our font metrics and maximum cell size in pixels
@@ -962,7 +1051,7 @@ errr ttfToFont(FontData *fd, cptr filename, int fontsize, int smoothing) {
   // Create our glyph surface that will store 256 characters in a 16x16 matrix
   fd->surface = SDL_CreateRGBSurface(0, width*16, height*16, 32, 0, 0, 0, 0);
   if (fd->surface == NULL) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ttfToFont Error", SDL_GetError(), NULL);
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ttfToFont", SDL_GetError(), NULL);
     TTF_CloseFont(font);
     return 1;
   }

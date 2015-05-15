@@ -25,7 +25,8 @@ typedef struct TermData TermData;
 #define TERM_RECALL 2
 #define TERM_CHOICE 3
 #define TERM_CHAT 4
-extern char *term_title[8];
+#define TERM_MAX 8
+extern char *term_title[TERM_MAX];
 
 #define FONT_SMALL 0
 #define FONT_NORMAL 1
@@ -75,6 +76,7 @@ struct PictData {
 #define TERM_IS_ONLINE (1 << 5)    // Term is online
 #define TERM_IS_VIRTUAL (1 << 6)   // Term is virtual and uses term[TERM_MAIN]'s window/renderer
 #define TERM_IS_HIDDEN (1 << 7)    // Whether or not the term should be shown or not
+#define TERM_FONT_SMOOTH (1 << 8)  // whether to use font smoothing
 // font/pict display modes
 #define TERM_CELL_FONT 0      // Cell sizings are based on font sizes
 #define TERM_CELL_PICT 1      // Cell sizings are based on pict sizes
@@ -132,8 +134,12 @@ static errr resizeTerm(TermData *td, int rows, int cols);
 errr loadConfig();
 errr parseConfig(cptr section, cptr key, cptr value);
 errr saveConfig();
+errr loadFont(TermData *td, cptr filename, int fontsize, int smoothing);
+errr unloadFont(TermData *td);
 errr attachFont(FontData *fd, TermData *td);
 errr detachFont(TermData *td);
+errr loadPict(TermData *td, cptr filename);
+errr unloadPict(TermData *td);
 errr attachPict(PictData *pd, TermData *td);
 errr detachPict(TermData *td);
 errr ttfToFont(FontData *fd, cptr filename, int fontsize, int smoothing);
